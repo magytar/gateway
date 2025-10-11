@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Mail, Lock, UserPlus, LogIn, TrendingUp, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, UserPlus, LogIn, TrendingUp, AlertCircle, Eye, EyeOff, CheckCircle } from "lucide-react";
 
 export default function AuthPage() {
   const supabase = createClientComponentClient();
@@ -15,16 +15,33 @@ export default function AuthPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setLoading(true);
 
     if (!email || !password || (!isLogin && !confirm)) {
       setError("Preencha todos os campos");
+      setLoading(false);
+      return;
+    }
+
+    // Validação de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Email inválido");
+      setLoading(false);
+      return;
+    }
+
+    // Validação de senha
+    if (password.length < 6) {
+      setError("A senha deve ter no mínimo 6 caracteres");
       setLoading(false);
       return;
     }
@@ -35,20 +52,73 @@ export default function AuthPage() {
       return;
     }
 
-    let res;
-    if (isLogin) {
-      res = await supabase.auth.signInWithPassword({ email, password });
-    } else {
-      res = await supabase.auth.signUp({ email, password });
-    }
+    try {
+      if (isLogin) {
+        // Login
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({ 
+          email, 
+          password 
+        });
 
-    if (res.error) {
-      setError(res.error.message);
-    } else {
-      router.push("/dashboard");
-    }
+        if (signInError) {
+          setError(signInError.message === "Invalid login credentials" 
+            ? "Email ou senha incorretos" 
+            : signInError.message);
+          setLoading(false);
+          return;
+        }
 
-    setLoading(false);
+        if (data.user) {
+          router.push("/dashboard");
+        }
+      } else {
+        // Registro - usar a API route
+        const response = await fetch("/api/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setError(data.error || "Erro ao criar conta");
+          setLoading(false);
+          return;
+        }
+
+        // Sucesso no registro
+        setSuccess(data.message || "Conta criada com sucesso!");
+        
+        // Limpar campos
+        setEmail("");
+        setPassword("");
+        setConfirm("");
+        
+        // Opcional: fazer login automático após registro
+        setTimeout(async () => {
+          const { error: signInError } = await supabase.auth.signInWithPassword({ 
+            email: data.user.email, 
+            password 
+          });
+          
+          if (!signInError) {
+            router.push("/dashboard");
+          } else {
+            // Se não conseguir fazer login automático, mudar para tela de login
+            setIsLogin(true);
+            setSuccess("Conta criada! Faça login para continuar.");
+          }
+        }, 1500);
+      }
+    } catch (err) {
+      console.error("Erro:", err);
+      setError("Erro ao processar solicitação");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -80,6 +150,7 @@ export default function AuthPage() {
                 onClick={() => {
                   setIsLogin(true);
                   setError("");
+                  setSuccess("");
                 }}
                 className={`px-6 py-2 rounded-lg font-semibold transition-all ${
                   isLogin
@@ -93,6 +164,7 @@ export default function AuthPage() {
                 onClick={() => {
                   setIsLogin(false);
                   setError("");
+                  setSuccess("");
                 }}
                 className={`px-6 py-2 rounded-lg font-semibold transition-all ${
                   !isLogin
@@ -113,6 +185,13 @@ export default function AuthPage() {
             <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-400">
               <AlertCircle className="w-5 h-5 flex-shrink-0"/>
               <p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-4 p-4 bg-green-500/10 border border-green-500/30 rounded-lg flex items-center gap-2 text-green-400">
+              <CheckCircle className="w-5 h-5 flex-shrink-0"/>
+              <p className="text-sm">{success}</p>
             </div>
           )}
 
@@ -209,6 +288,7 @@ export default function AuthPage() {
                 onClick={() => {
                   setIsLogin(!isLogin);
                   setError("");
+                  setSuccess("");
                   setEmail("");
                   setPassword("");
                   setConfirm("");
