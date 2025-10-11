@@ -18,7 +18,7 @@ export default function ModernDashboard() {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        router.push("/login");
+        router.push("/");
       } else {
         setUser(user);
         setSales([
@@ -31,7 +31,7 @@ export default function ModernDashboard() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/");
   };
 
   if (!user) return null;
