@@ -139,7 +139,7 @@ export default function AuthPage() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
             Gateway MR
           </h1>
-          <p className="text-gray-400 mt-2">Venda Rapido e Seguro</p>
+          <p className="text-gray-400 mt-2">Venda Rapido e Segura</p>
         </div>
 
         {/* Card de autenticação */}
@@ -303,7 +303,7 @@ export default function AuthPage() {
 
         {/* Footer */}
         <div className="mt-8 text-center text-gray-500 text-sm">
-          <p>© 2025 Dashboard de Vendas. Todos os direitos reservados.</p>
+          <p>© 2025 Gateway de Vendas. Todos os direitos reservados.</p>
         </div>
       </div>
     </div>
