@@ -4,15 +4,16 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
-import { UserCircle, ShoppingCart, CreditCard, CheckCircle, Clock, TrendingUp, Filter, Download, Calendar } from "lucide-react";
+import { UserCircle, ShoppingCart, CreditCard, CheckCircle, Clock, TrendingUp, Filter, Download, Calendar, DollarSign, X } from "lucide-react";
 
 export default function ModernDashboard() {
   const supabase = createClientComponentClient();
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const [sales, setSales] = useState([]);
+  const [sales, setSales] = useState([ ]);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPayment, setFilterPayment] = useState("all");
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
@@ -44,22 +45,22 @@ export default function ModernDashboard() {
   });
 
   // Cálculos
-  const totalVendas = filteredSales.reduce((acc, s) => acc + s.quantidade, 0);
-  const totalRecebido = filteredSales.reduce((acc, s) => s.status === "Completed" ? acc + s.quantidade * s.valor : acc, 0);
-  const totalPendente = filteredSales.reduce((acc, s) => s.status === "Pending" ? acc + s.quantidade * s.valor : acc, 0);
+  const totalVendas = filteredSales.reduce((acc, s) => acc + s.valor, 0);
+  const totalRecebido = filteredSales.reduce((acc, s) => s.status === "Completed" ? acc + s.valor : acc, 0);
+  const totalPendente = filteredSales.reduce((acc, s) => s.status === "Pending" ? acc + s.valor : acc, 0);
   const transacoes = filteredSales.length;
   const completed = filteredSales.filter(s => s.status === "Completed").length;
   const pending = filteredSales.filter(s => s.status === "Pending").length;
   const canceled = filteredSales.filter(s => s.status === "Canceled").length;
   
-  const totalPix = filteredSales.filter(s => s.pagamento === "PIX" && s.status === "Completed").reduce((acc,s) => acc + s.quantidade*s.valor,0);
-  const totalCartao = filteredSales.filter(s => s.pagamento === "Cartão" && s.status === "Completed").reduce((acc,s) => acc + s.quantidade*s.valor,0);
+  const totalPix = filteredSales.filter(s => s.pagamento === "PIX" && s.status === "Completed").reduce((acc,s) => acc + s.valor,0);
+  const totalCartao = filteredSales.filter(s => s.pagamento === "Cartão" && s.status === "Completed").reduce((acc,s) => acc + s.valor,0);
 
   // Dados do gráfico de barras
   const chartData = [];
   filteredSales.forEach(sale => {
     const existing = chartData.find(c => c.day === sale.data);
-    const amount = sale.status === "Completed" ? sale.quantidade * sale.valor : 0;
+    const amount = sale.status === "Completed" ? sale.valor : 0;
     if(existing) existing.total += amount;
     else chartData.push({ day: sale.data, total: amount });
   });
@@ -79,9 +80,9 @@ export default function ModernDashboard() {
   ];
 
   const exportToCSV = () => {
-    const headers = ["ID", "Produto", "Quantidade", "Valor Unit.", "Total", "Data", "Pagamento", "Status"];
+    const headers = ["Cliente", "Pagamento", "Data", "Valor", "Status"];
     const rows = filteredSales.map(s => [
-      s.id, s.produto, s.quantidade, s.valor, s.quantidade * s.valor, s.data, s.pagamento, s.status
+      s.cliente, s.pagamento, s.data, s.valor, s.status
     ]);
     const csv = [headers, ...rows].map(row => row.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -90,6 +91,13 @@ export default function ModernDashboard() {
     a.href = url;
     a.download = "vendas.csv";
     a.click();
+  };
+
+  const handleWhatsAppWithdraw = () => {
+    const whatsappNumber = "5519994378031"; // Substitua pelo número do WhatsApp
+    const message = `Olá! Gostaria de solicitar um saque.\n\nValor disponível: ${totalRecebido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n\nEmail: ${user?.email}`;
+    const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
   };
 
   return (
@@ -106,6 +114,13 @@ export default function ModernDashboard() {
             </h1>
           </div>
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowWithdrawModal(true)}
+              className="bg-gradient-to-r from-green-600 to-green-700 text-white px-5 py-2 rounded-full hover:from-green-700 hover:to-green-800 transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
+            >
+              <DollarSign className="w-4 h-4"/>
+              Solicitar Saque
+            </button>
             <div className="flex items-center gap-2 bg-gray-700/50 backdrop-blur px-4 py-2 rounded-full border border-gray-600/50">
               <UserCircle className="w-5 h-5 text-indigo-400"/>
               <span className="text-gray-200 text-sm">{user.email}</span>
@@ -129,7 +144,9 @@ export default function ModernDashboard() {
             </div>
             <div>
               <span className="text-indigo-200 text-xs uppercase tracking-wider font-semibold">Total Vendas</span>
-              <p className="text-3xl font-bold text-white">{totalVendas}</p>
+              <p className="text-3xl font-bold text-white">
+                {totalVendas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </p>
             </div>
           </div>
           
@@ -245,6 +262,7 @@ export default function ModernDashboard() {
                 <option value="all">Todos Status</option>
                 <option value="Completed">Completadas</option>
                 <option value="Pending">Pendentes</option>
+                <option value="Error">Error</option>
                 <option value="Canceled">Canceladas</option>
               </select>
               
@@ -272,40 +290,27 @@ export default function ModernDashboard() {
             <table className="w-full min-w-[700px] table-auto border-collapse">
               <thead>
                 <tr className="bg-gray-700/50">
-                  <th className="border border-gray-600 px-4 py-3 text-left text-sm font-semibold text-gray-200">ID</th>
-                  <th className="border border-gray-600 px-4 py-3 text-left text-sm font-semibold text-gray-200">Produto</th>
-                  <th className="border border-gray-600 px-4 py-3 text-left text-sm font-semibold text-gray-200">Qtd</th>
-                  <th className="border border-gray-600 px-4 py-3 text-left text-sm font-semibold text-gray-200">Valor Unit.</th>
-                  <th className="border border-gray-600 px-4 py-3 text-left text-sm font-semibold text-gray-200">Total</th>
-                  <th className="border border-gray-600 px-4 py-3 text-left text-sm font-semibold text-gray-200">Data</th>
-                  <th className="border border-gray-600 px-4 py-3 text-left text-sm font-semibold text-gray-200">Pagamento</th>
-                  <th className="border border-gray-600 px-4 py-3 text-center text-sm font-semibold text-gray-200">Status</th>
+                  <th className="border border-gray-600 px-4 py-3 text-left text-sm font-semibold text-gray-200">CLIENTE</th>
+                  <th className="border border-gray-600 px-4 py-3 text-left text-sm font-semibold text-gray-200">PAGAMENTO</th>
+                  <th className="border border-gray-600 px-4 py-3 text-left text-sm font-semibold text-gray-200">DATA</th>
+                  <th className="border border-gray-600 px-4 py-3 text-left text-sm font-semibold text-gray-200">VALOR</th>
+                  <th className="border border-gray-600 px-4 py-3 text-left text-sm font-semibold text-gray-200">STATUS</th>  
                 </tr>
               </thead>
               <tbody>
                 {filteredSales.map((sale, index) => (
-                  <tr key={sale.id} className={`${index % 2 === 0 ? "bg-gray-700/30" : "bg-gray-800/30"} hover:bg-gray-600/50 transition-colors`}>
-                    <td className="border border-gray-600 px-4 py-3 text-sm text-gray-300">{sale.id}</td>
-                    <td className="border border-gray-600 px-4 py-3 text-sm text-gray-200 font-medium">{sale.produto}</td>
-                    <td className="border border-gray-600 px-4 py-3 text-sm text-gray-300">{sale.quantidade}</td>
+                  <tr key={index} className={`${index % 2 === 0 ? "bg-gray-700/30" : "bg-gray-800/30"} hover:bg-gray-600/50 transition-colors`}>
+                    <td className="border border-gray-600 px-4 py-3 text-sm text-gray-300">{sale.cliente}</td>
+                    <td className="border border-gray-600 px-4 py-3 text-sm text-gray-200 font-medium">{sale.pagamento}</td>
+                    <td className="border border-gray-600 px-4 py-3 text-sm text-gray-300">{sale.data}</td>
                     <td className="border border-gray-600 px-4 py-3 text-sm text-gray-300">
                       {sale.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    </td>
-                    <td className="border border-gray-600 px-4 py-3 text-sm text-gray-200 font-semibold">
-                      {(sale.quantidade * sale.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    </td>
-                    <td className="border border-gray-600 px-4 py-3 text-sm text-gray-300">{sale.data}</td>
-                    <td className="border border-gray-600 px-4 py-3 text-sm">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        sale.pagamento === "PIX" ? "bg-green-600/20 text-green-300 border border-green-500/30" : "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
-                      }`}>
-                        {sale.pagamento}
-                      </span>
                     </td>
                     <td className="border border-gray-600 px-4 py-3 text-center">
                       <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
                         sale.status === "Completed" ? "bg-green-600 text-white" :
                         sale.status === "Pending" ? "bg-yellow-500 text-white" :
+                        sale.status === "Error" ? "bg-red-500 text-white" :
                         "bg-red-600 text-white"
                       }`}>
                         {sale.status}
@@ -324,6 +329,59 @@ export default function ModernDashboard() {
           )}
         </section>
       </main>
+
+      {/* Modal de Saque */}
+      {showWithdrawModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-700/50 transform transition-all">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                <DollarSign className="w-7 h-7 text-green-400"/>
+                Solicitar Saque
+              </h3>
+              <button
+                onClick={() => setShowWithdrawModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6"/>
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-green-600/20 to-green-700/20 border border-green-500/30 rounded-xl p-6">
+                <p className="text-gray-300 text-sm mb-2">Saldo disponível para saque:</p>
+                <p className="text-4xl font-bold text-green-400">
+                  {totalRecebido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </p>
+              </div>
+
+              <div className="bg-gray-700/30 rounded-xl p-5 border border-gray-600/50">
+                <p className="text-gray-300 text-sm leading-relaxed">
+                  Para solicitar seu saque, clique no botão abaixo e envie uma mensagem via WhatsApp. 
+                  Nossa equipe processará sua solicitação em até 24 horas úteis.
+                </p>
+              </div>
+
+              <button
+                onClick={handleWhatsAppWithdraw}
+                className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all transform hover:scale-105 shadow-lg font-semibold text-lg flex items-center justify-center gap-3"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                Solicitar via WhatsApp
+              </button>
+
+              <button
+                onClick={() => setShowWithdrawModal(false)}
+                className="w-full bg-gray-700 text-gray-300 px-6 py-3 rounded-xl hover:bg-gray-600 transition-all font-medium"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
