@@ -4,16 +4,79 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
-import { UserCircle, ShoppingCart, CreditCard, CheckCircle, Clock, TrendingUp, Filter, Download, Calendar, DollarSign, X } from "lucide-react";
+import { UserCircle, ShoppingCart, CreditCard, CheckCircle, Clock, TrendingUp, Filter, Download, Calendar, DollarSign, X, RefreshCw } from "lucide-react";
 
 export default function ModernDashboard() {
   const supabase = createClientComponentClient();
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const [sales, setSales] = useState([ ]);
+  const [sales, setSales] = useState([]);
+  const [saldo, setSaldo] = useState(0);
+  const [loadingSaldo, setLoadingSaldo] = useState(true);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPayment, setFilterPayment] = useState("all");
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+
+  // Buscar saldo do usuário via API
+  const fetchSaldo = async (email) => {
+    try {
+      setLoadingSaldo(true);
+      const response = await fetch("/api/saldo", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: email }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setSaldo(data.saldo || 0);
+      } else {
+        console.error("Erro ao buscar saldo:", data.error);
+        setSaldo(0);
+      }
+    } catch (error) {
+      console.error("Erro na requisição do saldo:", error);
+      setSaldo(0);
+    } finally {
+      setLoadingSaldo(false);
+    }
+  };
+
+  // Buscar transações do usuário via API
+  const fetchTransacoes = async (email) => {
+    try {
+      const response = await fetch("/api/transacoes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: email }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Mapeia as transações para o formato esperado pelo dashboard
+        const transacoesFormatadas = data.transacoes.map(t => ({
+          cliente: t.cliente || "Cliente",
+          pagamento: t.pagamento || "PIX",
+          data: t.data ? new Date(t.data).toLocaleDateString("pt-BR") : "-",
+          valor: parseFloat(t.valor || 0),
+          status: t.status || "pending"
+        }));
+        setSales(transacoesFormatadas);
+      } else {
+        console.error("Erro ao buscar transações:", data.error);
+        setSales([]);
+      }
+    } catch (error) {
+      console.error("Erro na requisição de transações:", error);
+      setSales([]);
+    }
+  };
 
   useEffect(() => {
     const getUser = async () => {
@@ -22,9 +85,9 @@ export default function ModernDashboard() {
         router.push("/");
       } else {
         setUser(user);
-        setSales([
-
-        ]);
+        // Buscar saldo e transações do usuário
+        await fetchSaldo(user.email);
+        await fetchTransacoes(user.email);
       }
     };
     getUser();
@@ -33,6 +96,13 @@ export default function ModernDashboard() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/");
+  };
+
+  const handleRefreshSaldo = () => {
+    if (user) {
+      fetchSaldo(user.email);
+      fetchTransacoes(user.email);
+    }
   };
 
   if (!user) return null;
@@ -46,21 +116,21 @@ export default function ModernDashboard() {
 
   // Cálculos
   const totalVendas = filteredSales.reduce((acc, s) => acc + s.valor, 0);
-  const totalRecebido = filteredSales.reduce((acc, s) => s.status === "Completed" ? acc + s.valor : acc, 0);
-  const totalPendente = filteredSales.reduce((acc, s) => s.status === "Pending" ? acc + s.valor : acc, 0);
+  const totalRecebido = filteredSales.reduce((acc, s) => (s.status === "Completed" || s.status === "completed") ? acc + s.valor : acc, 0);
+  const totalPendente = filteredSales.reduce((acc, s) => (s.status === "Pending" || s.status === "pending") ? acc + s.valor : acc, 0);
   const transacoes = filteredSales.length;
-  const completed = filteredSales.filter(s => s.status === "Completed").length;
-  const pending = filteredSales.filter(s => s.status === "Pending").length;
-  const canceled = filteredSales.filter(s => s.status === "Canceled").length;
+  const completed = filteredSales.filter(s => s.status === "Completed" || s.status === "completed").length;
+  const pending = filteredSales.filter(s => s.status === "Pending" || s.status === "pending").length;
+  const canceled = filteredSales.filter(s => s.status === "Canceled" || s.status === "canceled").length;
   
-  const totalPix = filteredSales.filter(s => s.pagamento === "PIX" && s.status === "Completed").reduce((acc,s) => acc + s.valor,0);
-  const totalCartao = filteredSales.filter(s => s.pagamento === "Cartão" && s.status === "Completed").reduce((acc,s) => acc + s.valor,0);
+  const totalPix = filteredSales.filter(s => s.pagamento === "PIX" && (s.status === "Completed" || s.status === "completed")).reduce((acc,s) => acc + s.valor,0);
+  const totalCartao = filteredSales.filter(s => s.pagamento === "Cartão" && (s.status === "Completed" || s.status === "completed")).reduce((acc,s) => acc + s.valor,0);
 
   // Dados do gráfico de barras
   const chartData = [];
   filteredSales.forEach(sale => {
     const existing = chartData.find(c => c.day === sale.data);
-    const amount = sale.status === "Completed" ? sale.valor : 0;
+    const amount = (sale.status === "Completed" || sale.status === "completed") ? sale.valor : 0;
     if(existing) existing.total += amount;
     else chartData.push({ day: sale.data, total: amount });
   });
@@ -70,13 +140,6 @@ export default function ModernDashboard() {
   const paymentData = [
     { name: "PIX", value: totalPix, color: "#10B981" },
     { name: "Cartão", value: totalCartao, color: "#6366F1" }
-  ];
-
-  // Dados do gráfico de status
-  const statusData = [
-    { name: "Completadas", value: completed, color: "#10B981" },
-    { name: "Pendentes", value: pending, color: "#F59E0B" },
-    { name: "Canceladas", value: canceled, color: "#EF4444" }
   ];
 
   const exportToCSV = () => {
@@ -94,8 +157,8 @@ export default function ModernDashboard() {
   };
 
   const handleWhatsAppWithdraw = () => {
-    const whatsappNumber = "5519994378031"; // Substitua pelo número do WhatsApp
-    const message = `Olá! Gostaria de solicitar um saque.\n\nValor disponível: ${totalRecebido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n\nEmail: ${user?.email}`;
+    const whatsappNumber = "5519994378031";
+    const message = `Olá! Gostaria de solicitar um saque.\n\nSaldo disponível: ${saldo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n\nEmail: ${user?.email}`;
     const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   };
@@ -136,6 +199,35 @@ export default function ModernDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+        {/* Card de Saldo Disponível (destaque) */}
+        <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl shadow-2xl p-8 border border-green-500/30">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-green-100 text-sm uppercase tracking-wider font-semibold mb-2">
+                Saldo Disponível para Saque
+              </p>
+              {loadingSaldo ? (
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-8 h-8 text-white animate-spin" />
+                  <p className="text-2xl text-white">Carregando...</p>
+                </div>
+              ) : (
+                <p className="text-5xl font-bold text-white">
+                  {saldo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handleRefreshSaldo}
+              disabled={loadingSaldo}
+              className="bg-white/20 hover:bg-white/30 p-3 rounded-xl backdrop-blur transition-all disabled:opacity-50"
+              title="Atualizar saldo"
+            >
+              <RefreshCw className={`w-5 h-5 text-white ${loadingSaldo ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+        </div>
+
         {/* Cards principais com animação */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-2xl shadow-xl p-6 flex items-center gap-4 hover:scale-105 transform transition-all duration-300 border border-indigo-500/20">
@@ -150,12 +242,12 @@ export default function ModernDashboard() {
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl shadow-xl p-6 flex items-center gap-4 hover:scale-105 transform transition-all duration-300 border border-green-500/20">
+          <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-xl p-6 flex items-center gap-4 hover:scale-105 transform transition-all duration-300 border border-blue-500/20">
             <div className="bg-white/20 p-3 rounded-xl backdrop-blur">
               <CreditCard className="w-8 h-8 text-white"/>
             </div>
             <div>
-              <span className="text-green-200 text-xs uppercase tracking-wider font-semibold">Recebido</span>
+              <span className="text-blue-200 text-xs uppercase tracking-wider font-semibold">Recebido</span>
               <p className="text-2xl font-bold text-white">
                 {totalRecebido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </p>
@@ -195,23 +287,29 @@ export default function ModernDashboard() {
               Receita por Dia
             </h2>
             <div className="w-full h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
-                  <XAxis dataKey="day" stroke="#9CA3AF" style={{ fontSize: '12px' }}/>
-                  <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }}/>
-                  <Tooltip 
-                    formatter={(value) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
-                  />
-                  <Bar dataKey="total" fill="url(#colorGradient)" radius={[8, 8, 0, 0]} />
-                  <defs>
-                    <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#6366F1" stopOpacity={1}/>
-                      <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.8}/>
-                    </linearGradient>
-                  </defs>
-                </BarChart>
-              </ResponsiveContainer>
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
+                    <XAxis dataKey="day" stroke="#9CA3AF" style={{ fontSize: '12px' }}/>
+                    <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }}/>
+                    <Tooltip 
+                      formatter={(value) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
+                    />
+                    <Bar dataKey="total" fill="url(#colorGradient)" radius={[8, 8, 0, 0]} />
+                    <defs>
+                      <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#6366F1" stopOpacity={1}/>
+                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.8}/>
+                      </linearGradient>
+                    </defs>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-400">
+                  Nenhum dado disponível
+                </div>
+              )}
             </div>
           </section>
 
@@ -222,26 +320,32 @@ export default function ModernDashboard() {
               Métodos de Pagamento
             </h2>
             <div className="w-full h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={paymentData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {paymentData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              {paymentData.some(d => d.value > 0) ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={paymentData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {paymentData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-400">
+                  Nenhum dado disponível
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -262,6 +366,7 @@ export default function ModernDashboard() {
                 <option value="all">Todos Status</option>
                 <option value="Completed">Completadas</option>
                 <option value="Pending">Pendentes</option>
+                <option value="pending">pendentes</option>
                 <option value="Error">Error</option>
                 <option value="Canceled">Canceladas</option>
               </select>
@@ -278,7 +383,8 @@ export default function ModernDashboard() {
               
               <button
                 onClick={exportToCSV}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-2 shadow-lg"
+                disabled={filteredSales.length === 0}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Download className="w-4 h-4"/>
                 Exportar CSV
@@ -308,9 +414,9 @@ export default function ModernDashboard() {
                     </td>
                     <td className="border border-gray-600 px-4 py-3 text-center">
                       <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-                        sale.status === "Completed" ? "bg-green-600 text-white" :
-                        sale.status === "Pending" ? "bg-yellow-500 text-white" :
-                        sale.status === "Error" ? "bg-red-500 text-white" :
+                        sale.status === "Completed" || sale.status === "completed" ? "bg-green-600 text-white" :
+                        sale.status === "Pending" || sale.status === "pending" ? "bg-yellow-500 text-white" :
+                        sale.status === "Error" || sale.status === "error" ? "bg-red-500 text-white" :
                         "bg-red-600 text-white"
                       }`}>
                         {sale.status}
@@ -350,9 +456,16 @@ export default function ModernDashboard() {
             <div className="space-y-6">
               <div className="bg-gradient-to-r from-green-600/20 to-green-700/20 border border-green-500/30 rounded-xl p-6">
                 <p className="text-gray-300 text-sm mb-2">Saldo disponível para saque:</p>
-                <p className="text-4xl font-bold text-green-400">
-                  {totalRecebido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                </p>
+                {loadingSaldo ? (
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="w-6 h-6 text-green-400 animate-spin" />
+                    <p className="text-2xl text-green-400">Carregando...</p>
+                  </div>
+                ) : (
+                  <p className="text-4xl font-bold text-green-400">
+                    {saldo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </p>
+                )}
               </div>
 
               <div className="bg-gray-700/30 rounded-xl p-5 border border-gray-600/50">
@@ -364,7 +477,8 @@ export default function ModernDashboard() {
 
               <button
                 onClick={handleWhatsAppWithdraw}
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all transform hover:scale-105 shadow-lg font-semibold text-lg flex items-center justify-center gap-3"
+                disabled={saldo <= 0 || loadingSaldo}
+                className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all transform hover:scale-105 shadow-lg font-semibold text-lg flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
