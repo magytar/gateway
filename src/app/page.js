@@ -137,9 +137,9 @@ export default function AuthPage() {
             <TrendingUp className="w-8 h-8 text-white"/>
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            Gateway MR
+            Gateway Wine Six
           </h1>
-          <p className="text-gray-400 mt-2">Venda Rapido e Segura</p>
+          <p className="text-gray-400 mt-2">Venda Rapida e Segura</p>
         </div>
 
         {/* Card de autenticação */}

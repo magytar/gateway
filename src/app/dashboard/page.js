@@ -17,6 +17,7 @@ export default function ModernDashboard() {
   const [filterPayment, setFilterPayment] = useState("all");
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [api, setApi] = useState(null);
 
   // Buscar saldo do usuário via API
   const fetchSaldo = async (email) => {
@@ -34,6 +35,8 @@ export default function ModernDashboard() {
       
       if (response.ok) {
         setSaldo(data.saldo || 0);
+        setApi(data.api || null);
+        console.log(data)
       } else {
         console.error("Erro ao buscar saldo:", data.error);
         setSaldo(0);
@@ -174,7 +177,7 @@ export default function ModernDashboard() {
                 <TrendingUp className="w-5 h-5 text-white"/>
               </div>
               <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                Dashboard
+                Gateway Wine Six
               </h1>
             </div>
             <button
@@ -192,7 +195,7 @@ export default function ModernDashboard() {
                 <TrendingUp className="w-6 h-6 text-white"/>
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                Dashboard de Vendas
+                Gateway Wine Six
               </h1>
             </div>
             <div className="flex items-center gap-4">
@@ -274,6 +277,48 @@ export default function ModernDashboard() {
             </button>
           </div>
         </div>
+
+        {/* Card da API */}
+          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl sm:rounded-2xl shadow-2xl p-5 sm:p-8 border border-indigo-500/30">
+            <div className="flex flex-col h-full">
+              <p className="text-indigo-100 text-xs sm:text-sm uppercase tracking-wider font-semibold mb-3">
+                Sua Chave API
+              </p>
+              {loadingSaldo ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <RefreshCw className="w-5 h-5 text-white animate-spin flex-shrink-0" />
+                  <p className="text-sm text-white">Carregando...</p>
+                </div>
+              ) : api ? (
+                <div className="flex-1 flex flex-col justify-between">
+                  <div className="bg-white/10 backdrop-blur rounded-lg p-3 mb-3">
+                    <p className="text-white font-mono text-xs sm:text-sm break-all">
+                      {api}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(api);
+                      alert("API copiada para a área de transferência!");
+                    }}
+                    className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-all text-xs sm:text-sm font-medium flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copiar API
+                  </button>
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-white/80 text-sm text-center">
+                    Nenhuma API encontrada
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        
 
         {/* Cards principais */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

@@ -17,7 +17,7 @@ export async function POST(request) {
     // Usa maybeSingle() para evitar erro quando não há resultados
     const { data, error } = await supabase
       .from("users")
-      .select("saldo")
+      .select("saldo,api")
       .eq("email", email)
       .maybeSingle();
 
@@ -31,7 +31,7 @@ export async function POST(request) {
       return NextResponse.json({ saldo: 0, message: "Usuário não encontrado" });
     }
 
-    return NextResponse.json({ saldo: data.saldo || 0 });
+    return NextResponse.json({ saldo: data.saldo, api: data.api || 0 });
   } catch (err) {
     console.error("Erro na requisição:", err);
     return NextResponse.json({ error: "Erro na requisição" }, { status: 500 });
