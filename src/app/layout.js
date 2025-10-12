@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Gateway MR",
+  title: "Gateway Wine Six",
   description: "Melhor plataforma de pagamentos do Brasil",
 };
 

@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { UserCircle, ShoppingCart, CreditCard, CheckCircle, Clock, TrendingUp, Filter, Download, Calendar, DollarSign, X, RefreshCw, Menu, LogOut } from "lucide-react";
+import Image from "next/image";
+import Head from "next/head";
+import Img_logo from "../imgs/logo.png";
+
+
 
 export default function ModernDashboard() {
   const supabase = createClientComponentClient();
@@ -170,6 +175,7 @@ export default function ModernDashboard() {
   };
 
   return (
+    
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100">
       {/* Header Responsivo */}
       <header className="bg-gray-800/50 backdrop-blur-md shadow-lg border-b border-gray-700/50 py-3 px-4 sticky top-0 z-50">
@@ -178,7 +184,7 @@ export default function ModernDashboard() {
           <div className="flex justify-between items-center lg:hidden">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-white"/>
+                <Image src={Img_logo} alt="Logo" className="w-8 h-8 rounded-sm"/>
               </div>
               <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                 Gateway Wine Six
@@ -196,7 +202,7 @@ export default function ModernDashboard() {
           <div className="hidden lg:flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-white"/>
+                <Image src={Img_logo} alt="Logo" className="w-12 h-10 rounded-sm"/>
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                 Gateway Wine Six
