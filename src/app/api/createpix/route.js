@@ -20,7 +20,7 @@ export async function POST(request) {
     // Busca a API do usuário
     const { data, error } = await supabase
       .from("users")
-      .select("api, email")
+      .select("api, email, status")
       .eq("api", api)
       .single();
 
@@ -30,6 +30,13 @@ export async function POST(request) {
       return NextResponse.json(
         { error: "API não encontrada" },
         { status: 404 }
+      );
+    }
+
+    if (data.status === false) {
+      return NextResponse.json(
+        { error: "Usuário inativo. Contate o suporte." },
+        { status: 403 }
       );
     }
 
