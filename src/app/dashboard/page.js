@@ -339,11 +339,23 @@ export default function ModernDashboard() {
         </div>
 
         {/* Card da API */}
-          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl sm:rounded-2xl shadow-2xl p-5 sm:p-8 border border-indigo-500/30">
+  <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl sm:rounded-2xl shadow-2xl p-5 sm:p-8 border border-indigo-500/30">
   <div className="flex flex-col h-full">
-    <p className="text-indigo-100 text-xs sm:text-sm uppercase tracking-wider font-semibold mb-3">
-      Sua Chave API
-    </p>
+    <div className="flex items-center justify-between mb-3">
+      <p className="text-indigo-100 text-xs sm:text-sm uppercase tracking-wider font-semibold">
+        Sua Chave API
+      </p>
+      <a
+        href="/doc"
+        className="text-white/80 hover:text-white transition-colors text-xs sm:text-sm flex items-center gap-1"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <span className="hidden sm:inline">Documentação</span>
+        <span className="sm:hidden">Docs</span>
+      </a>
+    </div>
     
     {loadingSaldo ? (
       <div className="flex items-center gap-2 flex-1">
