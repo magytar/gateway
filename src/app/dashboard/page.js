@@ -549,10 +549,9 @@ export default function ModernDashboard() {
                 className="bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-indigo-500 focus:outline-none text-sm flex-1 sm:flex-none"
               >
                 <option value="all">Todos Status</option>
-                <option value="Completed">Completadas</option>
-                <option value="Pending">Pendentes</option>
-                <option value="pending">pendentes</option>
-                <option value="Error">Error</option>
+                <option value="completed">Completadas</option>
+                <option value="pending">Pendentes</option>
+                <option value="error">Error</option>
                 <option value="Canceled">Canceladas</option>
               </select>
               
