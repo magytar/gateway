@@ -313,7 +313,7 @@ export default function ModernDashboard() {
           <div className="flex justify-between items-start gap-3">
             <div className="flex-1 min-w-0">
               <p className="text-green-100 text-xs sm:text-sm uppercase tracking-wider font-semibold mb-2">
-                Saldo Disponível para Saque
+                Saldo Disponível para Saque Com Taxa de {tax !== null && tax !== undefined ? `${tax}%` : 'N/A'} + R$0,50 Por Transação
               </p>
               {loadingSaldo ? (
                 <div className="flex items-center gap-2">
