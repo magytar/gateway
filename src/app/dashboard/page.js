@@ -18,6 +18,7 @@ export default function ModernDashboard() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [api, setApi] = useState(null);
+  const [ativo, setAtivo] = useState(false);
 
   // Buscar saldo do usuário via API
   const fetchSaldo = async (email) => {
@@ -36,6 +37,7 @@ export default function ModernDashboard() {
       if (response.ok) {
         setSaldo(data.saldo || 0);
         setApi(data.api || null);
+        setAtivo(data.ativo || false);
         console.log(data)
       } else {
         console.error("Erro ao buscar saldo:", data.error);
@@ -280,44 +282,72 @@ export default function ModernDashboard() {
 
         {/* Card da API */}
           <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl sm:rounded-2xl shadow-2xl p-5 sm:p-8 border border-indigo-500/30">
-            <div className="flex flex-col h-full">
-              <p className="text-indigo-100 text-xs sm:text-sm uppercase tracking-wider font-semibold mb-3">
-                Sua Chave API
-              </p>
-              {loadingSaldo ? (
-                <div className="flex items-center gap-2 flex-1">
-                  <RefreshCw className="w-5 h-5 text-white animate-spin flex-shrink-0" />
-                  <p className="text-sm text-white">Carregando...</p>
-                </div>
-              ) : api ? (
-                <div className="flex-1 flex flex-col justify-between">
-                  <div className="bg-white/10 backdrop-blur rounded-lg p-3 mb-3">
-                    <p className="text-white font-mono text-xs sm:text-sm break-all">
-                      {api}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(api);
-                      alert("API copiada para a área de transferência!");
-                    }}
-                    className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-all text-xs sm:text-sm font-medium flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Copiar API
-                  </button>
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <p className="text-white/80 text-sm text-center">
-                    Nenhuma API encontrada
-                  </p>
-                </div>
-              )}
-            </div>
+  <div className="flex flex-col h-full">
+    <p className="text-indigo-100 text-xs sm:text-sm uppercase tracking-wider font-semibold mb-3">
+      Sua Chave API
+    </p>
+    
+    {loadingSaldo ? (
+      <div className="flex items-center gap-2 flex-1">
+        <RefreshCw className="w-5 h-5 text-white animate-spin flex-shrink-0" />
+        <p className="text-sm text-white">Carregando...</p>
+      </div>
+    ) : api ? (
+      <div className="flex-1 flex flex-col justify-between gap-3">
+        <div className="bg-white/10 backdrop-blur rounded-lg p-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <p className="text-white font-mono text-xs sm:text-sm break-all flex-1">
+              {ativo ? api : '••••••••••••••••••••'}
+            </p>
+            <span 
+              className={`inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                ativo 
+                  ? 'bg-green-500 text-white' 
+                  : 'bg-red-500 text-white'
+              }`}
+            >
+              {ativo ? 'Ativo' : 'Inativo'}
+            </span>
           </div>
+          
+          {!ativo && (
+            <p className="text-white/70 text-xs mt-2">
+              Ative sua conta para liberar a API de pagamentos
+            </p>
+          )}
+        </div>
+        
+        <button
+          onClick={() => {
+            if (ativo) {
+              navigator.clipboard.writeText(api);
+              alert("API copiada para a área de transferência!");
+            } else {
+              alert("Ative sua conta para liberar a API de pagamentos.");
+            }
+          }}
+          disabled={!ativo}
+          className={`px-4 py-2 rounded-lg transition-all text-xs sm:text-sm font-medium flex items-center justify-center gap-2 ${
+            ativo
+              ? 'bg-white/20 hover:bg-white/30 text-white cursor-pointer'
+              : 'bg-white/10 text-white/50 cursor-not-allowed'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          {ativo ? 'Copiar API' : 'API Bloqueada'}
+        </button>
+      </div>
+    ) : (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-white/80 text-sm text-center">
+          Nenhuma API encontrada
+        </p>
+      </div>
+    )}
+  </div>
+</div>
         
 
         {/* Cards principais */}
