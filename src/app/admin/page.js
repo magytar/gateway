@@ -14,6 +14,7 @@ export default function AdminPanel() {
   const [passwordInput, setPasswordInput] = useState("");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState(""); // Nova state para busca
 
   const ADMIN_LOGIN = process.env.NEXT_PUBLIC_ADMIN_LOGIN;
   const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
@@ -29,9 +30,13 @@ export default function AdminPanel() {
   };
 
   async function loadUsers() {
-    const { data: usersData, error: usersError } = await supabase
-      .from("users")
-      .select("id, email, saldo, status, api, tax");
+    let query = supabase.from("users").select("id, email, saldo, status, api, tax");
+
+    if (search) {
+      query = query.ilike("email", `%${search}%`);
+    }
+
+    const { data: usersData, error: usersError } = await query;
 
     if (usersError) {
       console.error(usersError);
@@ -109,6 +114,10 @@ export default function AdminPanel() {
     );
   }
 
+  useEffect(() => {
+    if (loggedIn) loadUsers();
+  }, [search]);
+
   if (!loggedIn) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -147,6 +156,17 @@ export default function AdminPanel() {
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Painel Admin</h1>
+
+      {/* Barra de busca */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Buscar usuário por email..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full max-w-md px-3 py-2 border rounded shadow-sm"
+        />
+      </div>
 
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg p-4">
         <table className="w-full table-auto border-collapse">
