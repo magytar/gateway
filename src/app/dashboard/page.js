@@ -19,6 +19,7 @@ export default function ModernDashboard() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [api, setApi] = useState(null);
   const [ativo, setAtivo] = useState(false);
+  const [tax, setTax] = useState(null);
 
   // Buscar saldo do usuário via API
   const fetchSaldo = async (email) => {
@@ -38,6 +39,7 @@ export default function ModernDashboard() {
         setSaldo(data.saldo || 0);
         setApi(data.api || null);
         setAtivo(data.ativo || false);
+        setTax(data.tax);
         console.log(data)
       } else {
         console.error("Erro ao buscar saldo:", data.error);
@@ -201,6 +203,16 @@ export default function ModernDashboard() {
               </h1>
             </div>
             <div className="flex items-center gap-4">
+              {/* Exibição da Taxa no Desktop */}
+              <div className="flex items-center gap-2 bg-amber-600/20 backdrop-blur px-4 py-2 rounded-full border border-amber-500/30">
+                <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-amber-200 text-sm font-semibold">
+                  {loadingSaldo ? '...' : tax !== null && tax !== undefined ? `Taxa: ${tax}%` : 'Taxa: N/A'}
+                </span>
+              </div>
+              
               <button
                 onClick={() => setShowWithdrawModal(true)}
                 className="bg-gradient-to-r from-green-600 to-green-700 text-white px-5 py-2 rounded-full hover:from-green-700 hover:to-green-800 transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
@@ -221,6 +233,7 @@ export default function ModernDashboard() {
             </div>
           </div>
 
+
           {/* Mobile Menu Dropdown */}
           {showMobileMenu && (
             <div className="lg:hidden mt-3 space-y-3 pb-3 border-t border-gray-700/50 pt-3">
@@ -228,6 +241,17 @@ export default function ModernDashboard() {
                 <UserCircle className="w-4 h-4 text-indigo-400 flex-shrink-0"/>
                 <span className="text-gray-200 text-xs truncate">{user.email}</span>
               </div>
+              
+              {/* Exibição da Taxa no Mobile */}
+              <div className="flex items-center gap-2 bg-amber-600/20 backdrop-blur px-3 py-2 rounded-lg border border-amber-500/30">
+                <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-amber-200 text-xs font-semibold">
+                  {loadingSaldo ? 'Carregando...' : tax !== null && tax !== undefined ? `Taxa de Transação: ${tax}%` : 'Taxa: N/A'}
+                </span>
+              </div>
+              
               <button
                 onClick={() => {
                   setShowWithdrawModal(true);
@@ -349,6 +373,8 @@ export default function ModernDashboard() {
   </div>
 </div>
         
+    
+
 
         {/* Cards principais */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
