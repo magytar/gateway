@@ -79,7 +79,8 @@ export async function POST(request) {
       valor: amount,
       status: "pending",
       code: result.pix.code,
-      pedido: payload.identifier
+      pedido: payload.identifier,
+      hora: new Date().toLocaleTimeString("pt-BR"),
     };
 
     console.log("Tentando inserir transação:", transacaoData);

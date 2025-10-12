@@ -76,7 +76,8 @@ export default function ModernDashboard() {
           pagamento: t.pagamento || "PIX",
           data: t.data ? new Date(t.data).toLocaleDateString("pt-BR") : "-",
           valor: parseFloat(t.valor || 0),
-          status: t.status || "pending"
+          status: t.status || "pending",
+          hora: t.hora || "-"
         }));
         setSales(transacoesFormatadas);
       } else {
@@ -153,9 +154,9 @@ export default function ModernDashboard() {
   ];
 
   const exportToCSV = () => {
-    const headers = ["Cliente", "Pagamento", "Data", "Valor", "Status"];
+    const headers = ["Cliente", "Pagamento", "Data", "Valor", "Status", "hora"];
     const rows = filteredSales.map(s => [
-      s.cliente, s.pagamento, s.data, s.valor, s.status
+      s.cliente, s.pagamento, s.data, s.valor, s.status, s.hora
     ]);
     const csv = [headers, ...rows].map(row => row.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -586,6 +587,7 @@ export default function ModernDashboard() {
                       <th className="px-3 py-3 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Cliente</th>
                       <th className="px-3 py-3 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Pagamento</th>
                       <th className="px-3 py-3 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider hidden sm:table-cell">Data</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Hora</th>
                       <th className="px-3 py-3 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Valor</th>
                       <th className="px-3 py-3 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Status</th>  
                     </tr>
@@ -596,6 +598,7 @@ export default function ModernDashboard() {
                         <td className="px-3 py-3 text-xs sm:text-sm text-gray-300 whitespace-nowrap">{sale.cliente}</td>
                         <td className="px-3 py-3 text-xs sm:text-sm text-gray-200 font-medium whitespace-nowrap">{sale.pagamento}</td>
                         <td className="px-3 py-3 text-xs sm:text-sm text-gray-300 whitespace-nowrap hidden sm:table-cell">{sale.data}</td>
+                        <td className="px-3 py-3 text-xs sm:text-sm text-gray-300 whitespace-nowrap">{sale.hora}</td>
                         <td className="px-3 py-3 text-xs sm:text-sm text-gray-300 whitespace-nowrap">
                           {sale.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                         </td>

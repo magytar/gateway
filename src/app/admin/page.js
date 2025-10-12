@@ -168,7 +168,7 @@ async function verifyTransaction(transacao) {
     setLoading(true);
     let query = supabase
       .from("transacoes")
-      .select("email, cliente, pagamento, data, valor, status, pedido")
+      .select("email, cliente, pagamento, data, valor, status, pedido, hora")
       .order("data", { ascending: false });
 
     if (searchTrans) query = query.or(`email.ilike.%${searchTrans}%,cliente.ilike.%${searchTrans}%`);
@@ -411,6 +411,7 @@ async function verifyTransaction(transacao) {
                 <th className="px-4 py-3 text-left">Cliente</th>
                 <th className="px-4 py-3 text-left">Pagamento</th>
                 <th className="px-4 py-3 text-left">Data</th>
+                <th className="px-4 py-3 text-left">Hora</th>
                 <th className="px-4 py-3 text-left">Valor</th>
                 <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">Pedido</th>
@@ -431,6 +432,7 @@ async function verifyTransaction(transacao) {
                   <td className="px-4 py-2">{t.cliente}</td>
                   <td className="px-4 py-2">{t.pagamento}</td>
                   <td className="px-4 py-2">{new Date(t.data).toLocaleString()}</td>
+                  <td className="px-4 py-2">{t.hora}</td>
                   <td className="px-4 py-2">R$ {t.valor}</td>
                   <td className="px-4 py-2">{t.status}</td>
                   <td className="px-4 py-2">{t.pedido}</td>
