@@ -10,8 +10,8 @@ const supabase = createClient(
 
 export default function AdminPanel() {
   const [loggedIn, setLoggedIn] = useState(false);
-  const [loginInput, setLoginInput] = useState("admin");
-  const [passwordInput, setPasswordInput] = useState("adminrafacarol");
+  const [loginInput, setLoginInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
   const [users, setUsers] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
