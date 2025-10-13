@@ -17,7 +17,7 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true);
   const [searchUsers, setSearchUsers] = useState("");
   const [searchTrans, setSearchTrans] = useState("");
-  const [activeTab, setActiveTab] = useState("users"); // "users" ou "transactions"
+  const [activeTab, setActiveTab] = useState("users");
 
   const ADMIN_LOGIN = process.env.NEXT_PUBLIC_ADMIN_LOGIN;
   const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
@@ -76,61 +76,58 @@ export default function AdminPanel() {
     setLoading(false);
   }
 
-  // Função para verificar transação via API BoltPagamentos
-async function verifyTransaction(transacao) {
-  const confirmAction = confirm(
-    `Deseja verificar a transação do pedido ${transacao.pedido}?`
-  );
-  if (!confirmAction) return;
+  async function verifyTransaction(transacao) {
+    const confirmAction = confirm(
+      `Deseja verificar a transação do pedido ${transacao.pedido}?`
+    );
+    if (!confirmAction) return;
 
-  try {
-    // Chama a rota API do Next.js
-    const res = await fetch(`../api/verify-transaction?pedido=${transacao.pedido}`);
-    const data = await res.json();
+    try {
+      const res = await fetch(`../api/verify-transaction?pedido=${transacao.pedido}`);
+      const data = await res.json();
 
-    if (!data.success || !data.data) {
-      alert("Transação não encontrada ou erro na API.");
-      return;
+      if (!data.success || !data.data) {
+        alert("Transação não encontrada ou erro na API.");
+        return;
+      }
+
+      if (data.data.status === "COMPLETED") {
+        const { error: updateError } = await supabase
+          .from("transacoes")
+          .update({ status: "completed" })
+          .eq("pedido", transacao.pedido);
+
+        if (updateError) return alert("Erro ao atualizar transação: " + updateError.message);
+
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("id, saldo, tax")
+          .eq("email", transacao.email)
+          .maybeSingle();
+
+        if (userError || !userData) return alert("Erro ao buscar usuário");
+
+        const taxAmount = (userData.tax ?? 0) / 100 * transacao.valor;
+        const newSaldo = ((userData.saldo ?? 0) + transacao.valor - taxAmount) - 0.50;
+
+        const { error: saldoError } = await supabase
+          .from("users")
+          .update({ saldo: newSaldo })
+          .eq("id", userData.id);
+
+        if (saldoError) return alert("Erro ao atualizar saldo");
+
+        alert(`Transação ${transacao.pedido} COMPLETED. Saldo atualizado!`);
+        loadTransactions();
+        loadUsers();
+      } else {
+        alert(`Transação ${transacao.pedido} não está COMPLETED ainda. Status atual: ${data.data.status}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao verificar transação: " + err.message);
     }
-
-    if (data.data.status === "COMPLETED") {
-      // Atualiza status da transação local e saldo do usuário
-      const { error: updateError } = await supabase
-        .from("transacoes")
-        .update({ status: "completed" })
-        .eq("pedido", transacao.pedido);
-
-      if (updateError) return alert("Erro ao atualizar transação: " + updateError.message);
-
-      const { data: userData, error: userError } = await supabase
-        .from("users")
-        .select("id, saldo, tax")
-        .eq("email", transacao.email)
-        .maybeSingle();
-
-      if (userError || !userData) return alert("Erro ao buscar usuário");
-
-      const taxAmount = (userData.tax ?? 0) / 100 * transacao.valor;
-      const newSaldo = ((userData.saldo ?? 0) + transacao.valor - taxAmount) - 0.50; // Subtrai taxa fixa de 50 centavos
-
-      const { error: saldoError } = await supabase
-        .from("users")
-        .update({ saldo: newSaldo })
-        .eq("id", userData.id);
-
-      if (saldoError) return alert("Erro ao atualizar saldo");
-
-      alert(`Transação ${transacao.pedido} COMPLETED. Saldo atualizado!`);
-      loadTransactions();
-      loadUsers();
-    } else {
-      alert(`Transação ${transacao.pedido} não está COMPLETED ainda. Status atual: ${data.data.status}`);
-    }
-  } catch (err) {
-    console.error(err);
-    alert("Erro ao verificar transação: " + err.message);
   }
-}
 
   async function toggleStatus(id, currentStatus) {
     const actionText = currentStatus ? "desativar" : "ativar";
@@ -184,12 +181,38 @@ async function verifyTransaction(transacao) {
     setLoading(false);
   }
 
+  // Debounce effect para busca de usuários
   useEffect(() => {
-    if (loggedIn) {
-      if (activeTab === "users") loadUsers();
-      else loadTransactions();
+    if (!loggedIn) return;
+    
+    const timer = setTimeout(() => {
+      loadUsers();
+    }, 500); // Aguarda 500ms após parar de digitar
+
+    return () => clearTimeout(timer);
+  }, [searchUsers, loggedIn]);
+
+  // Debounce effect para busca de transações
+  useEffect(() => {
+    if (!loggedIn) return;
+    
+    const timer = setTimeout(() => {
+      loadTransactions();
+    }, 500); // Aguarda 500ms após parar de digitar
+
+    return () => clearTimeout(timer);
+  }, [searchTrans, loggedIn]);
+
+  // Carrega dados ao trocar de aba
+  useEffect(() => {
+    if (!loggedIn) return;
+    
+    if (activeTab === "users") {
+      loadUsers();
+    } else {
+      loadTransactions();
     }
-  }, [searchUsers, searchTrans, activeTab, loggedIn]);
+  }, [activeTab]);
 
   if (!loggedIn) {
     return (
@@ -421,7 +444,7 @@ async function verifyTransaction(transacao) {
             <tbody>
               {transactions.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="px-4 py-3 text-center text-gray-500">
+                  <td colSpan="9" className="px-4 py-3 text-center text-gray-500">
                     Nenhuma transação encontrada
                   </td>
                 </tr>
@@ -431,22 +454,25 @@ async function verifyTransaction(transacao) {
                   <td className="px-4 py-2">{t.email}</td>
                   <td className="px-4 py-2">{t.cliente}</td>
                   <td className="px-4 py-2">{t.pagamento}</td>
-                  <td className="px-4 py-2">{new Date(t.data).toLocaleString()}</td>
+                  <td className="px-4 py-2">{t.data
+                    ? new Date(t.data).toLocaleDateString("pt-BR")
+                    : "-"}
+                  </td>
                   <td className="px-4 py-2">{t.hora}</td>
                   <td className="px-4 py-2">R$ {t.valor}</td>
                   <td className="px-4 py-2">{t.status}</td>
                   <td className="px-4 py-2">{t.pedido}</td>
 
                   <td className="px-4 py-2">
-                  {t.status !== "completed" && (
-                    <button
-                      onClick={() => verifyTransaction(t)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
-                    >
-                      Verificar
-                    </button>
-                  )}
-                </td>
+                    {t.status !== "completed" && (
+                      <button
+                        onClick={() => verifyTransaction(t)}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                      >
+                        Verificar
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
