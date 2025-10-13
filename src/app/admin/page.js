@@ -28,9 +28,11 @@ export default function AdminPanel() {
     completedTransactions: 0,
     totalRevenue: 0
   });
+  const [userIp, setUserIp] = useState(null);
 
   const ADMIN_LOGIN = process.env.NEXT_PUBLIC_ADMIN_LOGIN;
   const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
+  const ALLOWED_IP = "177.161.155.204";
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -43,6 +45,32 @@ export default function AdminPanel() {
       alert("Login ou senha incorretos!");
     }
   };
+
+  const autoLogin = () => {
+    setLoggedIn(true);
+    loadDashboardStats();
+    loadUsers();
+    loadTransactions();
+  };
+
+  useEffect(() => {
+    const checkIp = async () => {
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        setUserIp(data.ip);
+        
+        // Auto-login se o IP for o permitido
+        if (data.ip === ALLOWED_IP) {
+          autoLogin();
+        }
+      } catch (error) {
+        console.error('Erro ao verificar IP:', error);
+      }
+    };
+    
+    checkIp();
+  }, []);
 
   const handleLogout = () => {
     setLoggedIn(false);
