@@ -39,7 +39,7 @@ function PixGenerator({ api }) {
     }
 
     try {
-      const response = await fetch("/api/gerar", {
+      const response = await fetch("../api/createpix", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
