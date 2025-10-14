@@ -681,7 +681,7 @@ export default function AdminPanel() {
                               <td className="px-4 py-3 text-sm text-gray-900">{t.cliente}</td>
                               <td className="px-4 py-3 text-sm text-gray-500">
                                 <div className="flex flex-col">
-                                  <span>{t.data ? new Date(t.data).toLocaleDateString("pt-BR") : "-"}</span>
+                                  <span>{t.data ? new Date(t.data + "T00:00:00").toLocaleDateString("pt-BR") : "-"}</span>
                                   <span className="text-xs text-gray-400">{t.hora}</span>
                                 </div>
                               </td>
