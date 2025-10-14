@@ -137,7 +137,7 @@ function PixGenerator({ api }) {
               value={formData.document}
               onChange={(e) => setFormData({ ...formData, document: e.target.value })}
               className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2.5 text-white placeholder-white/50 focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all"
-              placeholder="000.000.000-00"
+              placeholder="00000000000 não colocar pontos ou traços"
             />
           </div>
 
@@ -267,7 +267,7 @@ export default function ModernDashboard() {
         const transacoesFormatadas = data.transacoes.map(t => ({
           cliente: t.cliente || "Cliente",
           pagamento: t.pagamento || "PIX",
-          data: t.data ? new Date(t.data).toLocaleDateString("pt-BR") : "-",
+          data: t.data || "-",
           valor: parseFloat(t.valor || 0),
           status: t.status || "pending",
           hora: t.hora || "-",
@@ -804,7 +804,9 @@ export default function ModernDashboard() {
                       <tr key={index} className={`${index % 2 === 0 ? "bg-gray-700/30" : "bg-gray-800/30"} hover:bg-gray-600/50 transition-colors`}>
                         <td className="px-3 py-3 text-xs sm:text-sm text-gray-300 whitespace-nowrap">{sale.cliente}</td>
                         <td className="px-3 py-3 text-xs sm:text-sm text-gray-200 font-medium whitespace-nowrap">{sale.pagamento}</td>
-                        <td className="px-3 py-3 text-xs sm:text-sm text-gray-300 whitespace-nowrap hidden sm:table-cell">{sale.data}</td>
+                        <td className="px-3 py-3 text-xs sm:text-sm text-gray-300 whitespace-nowrap hidden sm:table-cell">{sale.data
+    ? new Date(sale.data + "T00:00:00").toLocaleDateString("pt-BR")
+    : "-"}</td>
                         <td className="px-3 py-3 text-xs sm:text-sm text-gray-300 whitespace-nowrap">{sale.hora}</td>
                         <td className="px-3 py-3 text-xs sm:text-sm text-gray-300 whitespace-nowrap">
                           {sale.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
